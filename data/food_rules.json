@@ -1,0 +1,1236 @@
+{
+  "version": "0.1",
+  "description": "Lightweight local food rules for Chinese daily meals. Scores are rough signals for trend analysis, not medical or calorie advice.",
+  "dimensions": {
+    "health_score": "Rough score from -3 to 3. Higher means generally healthier in normal portions.",
+    "protein": "none | low | medium | high",
+    "carb": "none | low | medium | high",
+    "fat": "none | low | medium | high",
+    "fiber": "none | low | medium | high",
+    "sugar": "none | low | medium | high",
+    "salt": "none | low | medium | high"
+  },
+  "foods": {
+    "米饭": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "高碳水"
+      ],
+      "health_score": 0,
+      "protein": "low",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "糙米饭": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "全谷物",
+        "高纤维"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "杂粮饭": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "全谷物",
+        "高纤维"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "面条": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "高碳水"
+      ],
+      "health_score": 0,
+      "protein": "low",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "low"
+    },
+    "馒头": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "精制碳水"
+      ],
+      "health_score": 0,
+      "protein": "low",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "low"
+    },
+    "包子": {
+      "category": "staple",
+      "tags": [
+        "早餐",
+        "主食",
+        "可能偏油"
+      ],
+      "health_score": 0,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "油条": {
+      "category": "breakfast",
+      "tags": [
+        "早餐",
+        "油炸",
+        "高脂"
+      ],
+      "health_score": -3,
+      "protein": "low",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "煎饼果子": {
+      "category": "breakfast",
+      "tags": [
+        "早餐",
+        "街边",
+        "高碳水",
+        "偏油"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "三明治": {
+      "category": "breakfast",
+      "tags": [
+        "早餐",
+        "快餐"
+      ],
+      "health_score": 0,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "燕麦": {
+      "category": "breakfast",
+      "tags": [
+        "早餐",
+        "全谷物",
+        "高纤维"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "红薯": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "高纤维"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "玉米": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "粗粮"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "土豆": {
+      "category": "staple",
+      "tags": [
+        "主食",
+        "根茎类"
+      ],
+      "health_score": 1,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "鸡蛋": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "早餐"
+      ],
+      "health_score": 2,
+      "protein": "high",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "水煮蛋": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "低加工"
+      ],
+      "health_score": 3,
+      "protein": "high",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "none"
+    },
+    "牛奶": {
+      "category": "dairy",
+      "tags": [
+        "乳制品",
+        "蛋白质",
+        "钙"
+      ],
+      "health_score": 2,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "medium",
+      "salt": "low"
+    },
+    "酸奶": {
+      "category": "dairy",
+      "tags": [
+        "乳制品",
+        "蛋白质"
+      ],
+      "health_score": 1,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "medium",
+      "salt": "low"
+    },
+    "无糖酸奶": {
+      "category": "dairy",
+      "tags": [
+        "乳制品",
+        "蛋白质",
+        "低糖"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "low",
+      "salt": "low"
+    },
+    "豆浆": {
+      "category": "drink",
+      "tags": [
+        "早餐",
+        "植物蛋白"
+      ],
+      "health_score": 2,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "无糖豆浆": {
+      "category": "drink",
+      "tags": [
+        "早餐",
+        "植物蛋白",
+        "低糖"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "豆腐": {
+      "category": "protein",
+      "tags": [
+        "植物蛋白",
+        "豆制品"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "鸡胸肉": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "低脂"
+      ],
+      "health_score": 3,
+      "protein": "high",
+      "carb": "none",
+      "fat": "low",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "鸡腿": {
+      "category": "protein",
+      "tags": [
+        "蛋白质",
+        "肉类"
+      ],
+      "health_score": 1,
+      "protein": "high",
+      "carb": "none",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "牛肉": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "红肉"
+      ],
+      "health_score": 2,
+      "protein": "high",
+      "carb": "none",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "猪肉": {
+      "category": "protein",
+      "tags": [
+        "肉类",
+        "红肉"
+      ],
+      "health_score": 0,
+      "protein": "high",
+      "carb": "none",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "五花肉": {
+      "category": "protein",
+      "tags": [
+        "肉类",
+        "高脂"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "none",
+      "fat": "high",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "鱼": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "水产"
+      ],
+      "health_score": 3,
+      "protein": "high",
+      "carb": "none",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "虾": {
+      "category": "protein",
+      "tags": [
+        "优质蛋白",
+        "水产",
+        "低脂"
+      ],
+      "health_score": 3,
+      "protein": "high",
+      "carb": "none",
+      "fat": "low",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "肥牛": {
+      "category": "protein",
+      "tags": [
+        "红肉",
+        "偏脂肪"
+      ],
+      "health_score": 0,
+      "protein": "high",
+      "carb": "none",
+      "fat": "high",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "low"
+    },
+    "火腿肠": {
+      "category": "processed_meat",
+      "tags": [
+        "加工肉",
+        "高盐"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "午餐肉": {
+      "category": "processed_meat",
+      "tags": [
+        "加工肉",
+        "高盐",
+        "高脂"
+      ],
+      "health_score": -3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "high",
+      "fiber": "none",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "青菜": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "高纤维"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "生菜": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "低热量"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "西兰花": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "高纤维"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "菠菜": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "绿叶菜"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "番茄": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "低热量"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "黄瓜": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "低热量"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "胡萝卜": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "根茎类"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "蘑菇": {
+      "category": "vegetable",
+      "tags": [
+        "菌菇",
+        "低热量"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "海带": {
+      "category": "vegetable",
+      "tags": [
+        "海藻",
+        "高纤维"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "沙拉": {
+      "category": "vegetable",
+      "tags": [
+        "蔬菜",
+        "轻食"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "苹果": {
+      "category": "fruit",
+      "tags": [
+        "水果",
+        "高纤维"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "香蕉": {
+      "category": "fruit",
+      "tags": [
+        "水果"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "橙子": {
+      "category": "fruit",
+      "tags": [
+        "水果"
+      ],
+      "health_score": 2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "蓝莓": {
+      "category": "fruit",
+      "tags": [
+        "水果"
+      ],
+      "health_score": 3,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "medium",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "西瓜": {
+      "category": "fruit",
+      "tags": [
+        "水果",
+        "高水分"
+      ],
+      "health_score": 1,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "黄焖鸡米饭": {
+      "category": "takeout",
+      "tags": [
+        "外卖",
+        "盖饭",
+        "偏油",
+        "偏咸",
+        "主食"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "盖浇饭": {
+      "category": "takeout",
+      "tags": [
+        "外卖",
+        "盖饭",
+        "主食"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "麻辣烫": {
+      "category": "takeout",
+      "tags": [
+        "外卖",
+        "高盐",
+        "可健康可重口"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "麻辣香锅": {
+      "category": "takeout",
+      "tags": [
+        "外卖",
+        "重油",
+        "高盐"
+      ],
+      "health_score": -3,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "火锅": {
+      "category": "restaurant",
+      "tags": [
+        "聚餐",
+        "高盐",
+        "可健康可重口"
+      ],
+      "health_score": -1,
+      "protein": "high",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "烧烤": {
+      "category": "restaurant",
+      "tags": [
+        "聚餐",
+        "高盐",
+        "油烤"
+      ],
+      "health_score": -3,
+      "protein": "high",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "炸鸡": {
+      "category": "fast_food",
+      "tags": [
+        "油炸",
+        "高脂",
+        "高盐"
+      ],
+      "health_score": -3,
+      "protein": "high",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "汉堡": {
+      "category": "fast_food",
+      "tags": [
+        "快餐",
+        "高脂",
+        "高盐"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "medium",
+      "salt": "high"
+    },
+    "薯条": {
+      "category": "fast_food",
+      "tags": [
+        "油炸",
+        "高脂",
+        "高盐"
+      ],
+      "health_score": -3,
+      "protein": "low",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "披萨": {
+      "category": "fast_food",
+      "tags": [
+        "快餐",
+        "高脂",
+        "高盐"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "medium",
+      "salt": "high"
+    },
+    "拉面": {
+      "category": "takeout",
+      "tags": [
+        "面食",
+        "高盐",
+        "汤面"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "螺蛳粉": {
+      "category": "takeout",
+      "tags": [
+        "粉面",
+        "高盐",
+        "重口"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "酸辣粉": {
+      "category": "takeout",
+      "tags": [
+        "粉面",
+        "高盐",
+        "高碳水"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "沙县小吃": {
+      "category": "takeout",
+      "tags": [
+        "外卖",
+        "简餐"
+      ],
+      "health_score": 0,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "兰州拉面": {
+      "category": "takeout",
+      "tags": [
+        "面食",
+        "汤面",
+        "高盐"
+      ],
+      "health_score": -1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "轻食": {
+      "category": "takeout",
+      "tags": [
+        "轻食",
+        "蔬菜",
+        "蛋白质"
+      ],
+      "health_score": 2,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "high",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "寿司": {
+      "category": "takeout",
+      "tags": [
+        "简餐",
+        "主食",
+        "水产"
+      ],
+      "health_score": 1,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "medium",
+      "salt": "medium"
+    },
+    "粥": {
+      "category": "staple",
+      "tags": [
+        "清淡",
+        "主食"
+      ],
+      "health_score": 1,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "low"
+    },
+    "皮蛋瘦肉粥": {
+      "category": "staple",
+      "tags": [
+        "粥",
+        "早餐",
+        "偏咸"
+      ],
+      "health_score": 0,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "low",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "medium"
+    },
+    "奶茶": {
+      "category": "drink",
+      "tags": [
+        "高糖",
+        "饮料"
+      ],
+      "health_score": -3,
+      "protein": "low",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "high",
+      "salt": "low"
+    },
+    "无糖茶": {
+      "category": "drink",
+      "tags": [
+        "饮料",
+        "低糖"
+      ],
+      "health_score": 2,
+      "protein": "none",
+      "carb": "none",
+      "fat": "none",
+      "fiber": "none",
+      "sugar": "none",
+      "salt": "none"
+    },
+    "咖啡": {
+      "category": "drink",
+      "tags": [
+        "饮料",
+        "低糖"
+      ],
+      "health_score": 1,
+      "protein": "low",
+      "carb": "low",
+      "fat": "low",
+      "fiber": "none",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "拿铁": {
+      "category": "drink",
+      "tags": [
+        "咖啡",
+        "乳制品"
+      ],
+      "health_score": 1,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "medium",
+      "fiber": "none",
+      "sugar": "medium",
+      "salt": "low"
+    },
+    "可乐": {
+      "category": "drink",
+      "tags": [
+        "高糖",
+        "含糖饮料"
+      ],
+      "health_score": -3,
+      "protein": "none",
+      "carb": "high",
+      "fat": "none",
+      "fiber": "none",
+      "sugar": "high",
+      "salt": "low"
+    },
+    "果汁": {
+      "category": "drink",
+      "tags": [
+        "饮料",
+        "高糖"
+      ],
+      "health_score": -1,
+      "protein": "none",
+      "carb": "high",
+      "fat": "none",
+      "fiber": "low",
+      "sugar": "high",
+      "salt": "none"
+    },
+    "啤酒": {
+      "category": "alcohol",
+      "tags": [
+        "酒精",
+        "聚餐"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "none",
+      "fiber": "none",
+      "sugar": "medium",
+      "salt": "none"
+    },
+    "薯片": {
+      "category": "snack",
+      "tags": [
+        "零食",
+        "高盐",
+        "高脂"
+      ],
+      "health_score": -3,
+      "protein": "low",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "巧克力": {
+      "category": "snack",
+      "tags": [
+        "零食",
+        "高糖",
+        "高脂"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "high",
+      "salt": "low"
+    },
+    "蛋糕": {
+      "category": "dessert",
+      "tags": [
+        "甜点",
+        "高糖",
+        "高脂"
+      ],
+      "health_score": -3,
+      "protein": "low",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "high",
+      "salt": "low"
+    },
+    "饼干": {
+      "category": "snack",
+      "tags": [
+        "零食",
+        "高糖",
+        "精制碳水"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "high",
+      "fat": "medium",
+      "fiber": "low",
+      "sugar": "high",
+      "salt": "medium"
+    },
+    "坚果": {
+      "category": "snack",
+      "tags": [
+        "零食",
+        "健康脂肪"
+      ],
+      "health_score": 2,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "high",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "low"
+    },
+    "无盐坚果": {
+      "category": "snack",
+      "tags": [
+        "零食",
+        "健康脂肪",
+        "低盐"
+      ],
+      "health_score": 3,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "high",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "none"
+    },
+    "川味小炒肉": {
+      "category": "takeout",
+      "tags": [
+        "下饭菜",
+        "川菜",
+        "高油",
+        "高盐"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "low",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "肉沫茄子": {
+      "category": "takeout",
+      "tags": [
+        "中餐",
+        "家常菜",
+        "高油"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "low",
+      "fat": "high",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "酸菜肉卷": {
+      "category": "takeout",
+      "tags": [
+        "中餐",
+        "家常菜",
+        "高蛋白",
+        "发酵蔬菜"
+      ],
+      "health_score": 1,
+      "protein": "high",
+      "carb": "low",
+      "fat": "medium",
+      "fiber": "medium",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "加多宝": {
+      "category": "drink",
+      "tags": [
+        "含糖饮料",
+        "凉茶",
+        "加工饮品"
+      ],
+      "health_score": -2,
+      "protein": "none",
+      "carb": "medium",
+      "fat": "none",
+      "fiber": "none",
+      "sugar": "high",
+      "salt": "none"
+    }
+  },
+  "aliases": {
+    "白米饭": "米饭",
+    "大米饭": "米饭",
+    "杂粮米饭": "杂粮饭",
+    "全麦燕麦": "燕麦",
+    "水煮鸡蛋": "水煮蛋",
+    "纯牛奶": "牛奶",
+    "酸牛奶": "酸奶",
+    "鸡肉": "鸡腿",
+    "青菜": "青菜",
+    "绿叶菜": "青菜",
+    "青菜类": "青菜",
+    "西红柿": "番茄",
+    "蘑菇": "蘑菇",
+    "菌菇": "蘑菇",
+    "黄焖鸡": "黄焖鸡米饭",
+    "麻辣汤": "麻辣烫",
+    "麦当劳": "汉堡",
+    "肯德基": "炸鸡",
+    "炸鸡腿": "炸鸡",
+    "炸薯条": "薯条",
+    "轻食沙拉": "轻食",
+    "可口可乐": "可乐",
+    "雪碧": "可乐",
+    "乌龙茶": "无糖茶",
+    "绿茶": "无糖茶",
+    "美式咖啡": "咖啡",
+    "农家小炒肉": "川味小炒肉",
+    "鱼香茄子": "肉沫茄子",
+    "酸菜肉片卷": "酸菜肉卷",
+    "千张肉卷": "酸菜肉卷",
+    "凉茶": "加多宝",
+    "罐装凉茶": "加多宝"
+  }
+}

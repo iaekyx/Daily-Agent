@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Agent Dashboard</title>
+    <link rel="stylesheet" href="/frontend/css/style.css?v=2.8">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <span class="glitch-text" data-text="研习助手">研习助手</span>
+            </div>
+            <ul class="nav-links">
+                <li class="active" data-target="chat-module">
+                    <span class="icon">💬</span> 智能体控制台
+                </li>
+                <li data-target="academic-module">
+                    <span class="icon">📚</span> 学术动态面板
+                </li>
+                <li data-target="memory-module">
+                    <span class="icon">🗂️</span> 文献记忆库
+                </li>
+                <li data-target="reading-module">
+                    <span class="icon">📖</span> 本周待读
+                </li>
+                <li data-target="meals-module">
+                    <span class="icon">🍱</span> 饮食生活
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Chat / 智能体控制台 -->
+            <section id="chat-module" class="module active">
+                <header class="module-header">
+                    <h2>智能体控制台</h2>
+                </header>
+                <div class="chat-container">
+                    <div class="chat-log" id="chat-log">
+                        <div class="message system">
+                            <div class="bubble">System Initialized. Awaiting your command.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Permission Request Modal (Overlay) - Migrated to In-line Chat Cards -->
+                    <!--
+                    <div id="permission-modal" class="glass-modal hidden">
+                        <div class="modal-content">
+                            <h3>⚠️ High Risk Action Detected</h3>
+                            <p id="permission-desc">The agent is trying to execute a command.</p>
+                            <pre id="permission-preview"></pre>
+                            <div class="modal-actions">
+                                <button id="btn-reject" class="btn danger">Reject</button>
+                                <button id="btn-approve" class="btn success">Approve</button>
+                            </div>
+                        </div>
+                    </div>
+                    -->
+
+                    <div class="chat-input-area">
+                        <textarea id="chat-input" placeholder="Enter command... (e.g., 'What did I eat yesterday?')"></textarea>
+                        <button id="send-btn" class="glow-btn">SEND</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 学术动态面板 -->
+            <section id="academic-module" class="module">
+                <header class="module-header">
+                    <h2>学术动态面板</h2>
+                    <button id="refresh-academic" class="btn outline">刷新</button>
+                </header>
+                
+                <!-- Keyword Settings Card -->
+                <div class="keyword-config-panel">
+                    <div class="keyword-header">
+                        <h3>🔑 学术检索关键词</h3>
+                        <p class="subtitle text-muted">配置自动 arXiv 早报巡检时使用的关键词。</p>
+                    </div>
+                    <div class="keyword-manager">
+                        <div class="keyword-tags" id="keyword-tags-container">
+                            <!-- Dynamically loaded -->
+                        </div>
+                        <div class="keyword-controls">
+                            <input type="text" id="new-keyword-input" placeholder="添加新关键词..." />
+                            <button id="add-keyword-btn" class="btn outline small">添加</button>
+                            <button id="save-keywords-btn" class="btn glow-btn small">保存同步</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-container" id="academic-grid">
+                    <!-- Cards will be populated here by JS -->
+                </div>
+            </section>
+
+            <!-- 记忆中心 -->
+            <section id="memory-module" class="module">
+                <header class="module-header">
+                    <h2>文献记忆库</h2>
+                </header>
+                <div class="memory-layout">
+                    <div class="memory-left">
+                        <div class="upload-zone" id="upload-zone">
+                            <span class="icon">📄</span>
+                            <p>拖拽 PDF 到这里，收录到文献记忆库</p>
+                            <input type="file" id="file-input" accept="application/pdf" hidden>
+                            <button class="btn primary" onclick="document.getElementById('file-input').click()">选择文件</button>
+                        </div>
+                        <div id="upload-status"></div>
+                    </div>
+                    <div class="memory-right">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
+                            <h3 style="margin: 0; border: none; padding: 0;">已收录文献</h3>
+                            <div class="search-bar" style="display: flex; gap: 0.5rem;">
+                                <select id="memory-search-scope" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); padding: 0.4rem 0.6rem; border-radius: 4px; font-size: 0.9rem;">
+                                    <option value="all">全部</option>
+                                    <option value="title">标题</option>
+                                    <option value="summary">摘要</option>
+                                    <option value="comment">评论</option>
+                                    <option value="source">来源</option>
+                                    <option value="direction">方向</option>
+                                </select>
+                                <input type="text" id="memory-search-input" placeholder="检索文献..." style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); padding: 0.4rem 0.8rem; border-radius: 4px; font-size: 0.9rem;">
+                                <button id="memory-search-btn" class="btn primary" style="padding: 0.4rem 1rem;">检索</button>
+                            </div>
+                        </div>
+                        <div id="papers-list" class="papers-list">
+                            <!-- Ingested paper cards will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 本周待读 -->
+            <section id="reading-module" class="module">
+                <header class="module-header">
+                    <h2>本周待读</h2>
+                    <button id="refresh-reading" class="btn outline">刷新</button>
+                </header>
+                <div class="reading-summary">
+                    <div>
+                        <span class="reading-count" id="weekly-read-count">0</span>
+                        <span class="reading-count-label">本周已读论文</span>
+                    </div>
+                </div>
+                <div id="reading-list" class="reading-list"></div>
+            </section>
+
+            <!-- Meals Module -->
+            <section id="meals-module" class="module">
+                <header class="module-header">
+                    <h2>饮食生活</h2>
+                </header>
+                <div class="meal-entry-panel">
+                    <div class="meal-entry-fields">
+                        <input type="date" id="meal-date-input">
+                        <select id="meal-type-input">
+                            <option value="早餐">早餐</option>
+                            <option value="午餐">午餐</option>
+                            <option value="晚餐">晚餐</option>
+                            <option value="夜宵">夜宵</option>
+                            <option value="其他">其他</option>
+                        </select>
+                        <input type="text" id="meal-content-input" placeholder="例如：黄焖鸡米饭，加一杯无糖茶">
+                        <button id="add-meal-btn" class="btn primary">记录饮食</button>
+                    </div>
+                    <div id="meal-entry-status"></div>
+                </div>
+                <div class="meal-analysis-panel">
+                    <div class="meal-analysis-header">
+                        <h3>营养趋势</h3>
+                        <select id="meal-analysis-days">
+                            <option value="7">近 7 天</option>
+                            <option value="30">近 30 天</option>
+                        </select>
+                    </div>
+                    <div id="meal-analysis-content" class="meal-analysis-content"></div>
+                </div>
+                <div class="food-rule-panel">
+                    <div class="food-rule-header">
+                        <h3>食物标签维护</h3>
+                        <span id="food-rule-count"></span>
+                    </div>
+                    <div class="food-rule-fields">
+                        <input type="text" id="food-rule-name-input" placeholder="新增食物，例如：牛肉米线">
+                        <input type="text" id="food-rule-notes-input" placeholder="可选说明，例如：汤面，牛肉，酸菜，偏咸">
+                        <button id="add-food-rule-btn" class="btn outline">分析并添加</button>
+                    </div>
+                    <div id="food-rule-status"></div>
+                </div>
+                <div class="meals-layout">
+                    <div class="history-panel">
+                        <h3>最近记录</h3>
+                        <div id="meals-timeline" class="timeline"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+    <script src="/frontend/js/app.js?v=1.27"></script>
+</body>
+</html>

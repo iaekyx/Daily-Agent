@@ -1,0 +1,33 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Local runtime state and personal data
+agent_status.json
+favorites.json
+favorites.md
+meals.json
+reading_queue.json
+arxiv_cache.json
+search_results.xml
+vector_db/
+
+# Uploaded/read papers and generated assets
+*.pdf
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+

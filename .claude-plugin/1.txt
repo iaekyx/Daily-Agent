@@ -1,0 +1,17 @@
+社区“标准”写法 (Node.js 生态)
+
+{
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-postgres"]
+}
+
+拼出来的终端命令： npx -y @modelcontextprotocol/server-postgres
+
+它在干嘛： npx 是 Node.js 的包管理工具。这行命令的意思是：“去 npm 网上临时下载这个叫 server-postgres 的包，并且用 Node.js 把它跑起来。”
+
+
+用普通工具（Native）的场景： 极其底层、极其高频、永远不可能剥离的基础能力。比如执行终端命令（Bash）、读取核心配置文件。这就好比是人的心脏和手脚。
+
+用 MCP 的场景： 任何具体的“业务功能”。不管它是连外网的（arXiv 检索），还是纯本地的（写本地 Markdown，操作本地 SQLite 数据库，控制你本地的蓝牙音箱）。这就好比是外接的 U 盘、打印机、扫描仪。
+
+所以，虽然你的 Collector 没连网，但把它做成 MCP，就像是给你的电脑插上了一个名叫“收藏夹管理”的 U 盘，完美贯彻了**“核心越小越好，能力越外置越好”**的顶级架构设计理念！

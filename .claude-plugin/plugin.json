@@ -1,0 +1,18 @@
+{
+  "name": "academic_tools",
+  "version": "1.0",
+  "mcpServers": {
+    "arxiv": {
+      "command": "python3",
+      "args": [
+        "arxiv_mcp_server.py"
+      ]
+    },
+    "collector": {
+      "command": "python3",
+      "args": [
+        "collection_mcp_server.py"
+      ]
+    }
+  }
+}

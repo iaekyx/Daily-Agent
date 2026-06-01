@@ -1197,6 +1197,68 @@
       "fiber": "none",
       "sugar": "high",
       "salt": "none"
+    },
+    "牛排火鸡面": {
+      "category": "fast_food",
+      "tags": [
+        "牛排",
+        "火鸡面",
+        "方便面",
+        "加工食品",
+        "高碳水",
+        "高钠"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "high",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "鸡块": {
+      "category": "fast_food",
+      "tags": [
+        "油炸食品",
+        "禽肉",
+        "高热量"
+      ],
+      "health_score": -2,
+      "protein": "medium",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "low",
+      "salt": "high"
+    },
+    "蛋挞": {
+      "category": "dessert",
+      "tags": [
+        "甜点",
+        "烘焙",
+        "高热量"
+      ],
+      "health_score": -2,
+      "protein": "low",
+      "carb": "medium",
+      "fat": "high",
+      "fiber": "low",
+      "sugar": "high",
+      "salt": "low"
+    },
+    "酸梅汤": {
+      "category": "drink",
+      "tags": [
+        "中式饮品",
+        "消暑"
+      ],
+      "health_score": 0,
+      "protein": "none",
+      "carb": "medium",
+      "fat": "none",
+      "fiber": "none",
+      "sugar": "high",
+      "salt": "low"
     }
   },
   "aliases": {
@@ -1231,6 +1293,12 @@
     "酸菜肉片卷": "酸菜肉卷",
     "千张肉卷": "酸菜肉卷",
     "凉茶": "加多宝",
-    "罐装凉茶": "加多宝"
+    "罐装凉茶": "加多宝",
+    "火鸡面加牛肉": "牛排火鸡面",
+    "牛排拌火鸡面": "牛排火鸡面",
+    "炸鸡块": "鸡块",
+    "麦乐鸡": "鸡块",
+    "葡式蛋挞": "蛋挞",
+    "乌梅汁": "酸梅汤"
   }
 }

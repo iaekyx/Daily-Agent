@@ -567,16 +567,30 @@ STATUS_FILE = WORKDIR / "agent_status.json"
 def get_daily_update(router, keywords):
     print("[\033[94mSystem\033[0m] 检测到今日首次启动，正在执行自动巡检...")
     today = datetime.date.today().isoformat()
-    report_date = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+    current_run_at = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+    config = {"last_run": "", "last_run_at": ""}
+    if STATUS_FILE.exists():
+        try:
+            config = json.loads(STATUS_FILE.read_text())
+        except Exception:
+            pass
+    last_run_at = config.get("last_run_at")
+    if not last_run_at:
+        last_run_date = config.get("last_run")
+        if last_run_date:
+            last_run_at = f"{last_run_date}T00:00:00"
+        else:
+            last_run_at = (datetime.datetime.now().astimezone() - datetime.timedelta(days=1)).isoformat(timespec="seconds")
     
     query = f"""
         今天是 {today}，请帮我生成一份【每日学术早报】。
-        论文检索窗口固定为昨日：{report_date}。不要检索今天的论文，因为今天发布尚不完整。
+        论文检索窗口为增量区间：从上次每日简报执行时间 {last_run_at} 到本次执行时间 {current_run_at}。
+        请检索这段时间内发布的新论文；不要固定只查昨日，也不要把区间之外的旧论文写进新论文列表。
 
         你需要完成以下 3 个**完全独立**的子任务：
         1. 检查收藏夹中【已有代码】仓库的最新动态 (check_repo_updates)。
         2. 为收藏夹中【无代码】的论文寻找并绑定官方仓库 (get_missing_repo_candidates)。
-        3. 检索关于 '{" 和 ".join(keywords)}' 的昨日论文 (search_arxiv，严查发布日期必须等于 {report_date})。
+        3. 检索关于 '{" 和 ".join(keywords)}' 的增量新论文：调用 search_arxiv 时必须传入 published_after="{last_run_at}"、published_before="{current_run_at}"、max_results=50、fallback_latest_on_empty=true。
 
         【强制执行策略】：
         这三个任务互相没有依赖且非常耗时。作为高阶 Manager，你**绝不能**自己按顺序挨个执行！
@@ -586,7 +600,7 @@ def get_daily_update(router, keywords):
         ### 🔄 收藏夹动态
         (列出仓库代码更新，以及今天新找到并绑定的仓库)
         ### 📄 arXiv 新论文
-        (只列出发布日期为 {report_date} 的论文标题和链接，没有就写“昨日无新论文”)
+        (优先列出发布时间在 {last_run_at} 到 {current_run_at} 之间的新论文标题、发布日期和链接；如果工具返回“区间内没有新论文，以下返回最新的 3 篇论文作为参考”，则明确写“上次简报后暂无新论文，以下是该方向最新 3 篇参考论文”，然后列出这 3 篇。)
         """
     
     auto_history = [{"role": "user", "content": query}]
@@ -598,7 +612,7 @@ def get_daily_update(router, keywords):
 
 def check_and_run_daily_task(router):
     today = datetime.date.today().isoformat()
-    config = {"last_run": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]} 
+    config = {"last_run": "", "last_run_at": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]} 
     
     if STATUS_FILE.exists():
         try:
@@ -608,6 +622,7 @@ def check_and_run_daily_task(router):
     if config.get("last_run") != today:
         get_daily_update(router, config.get("keywords", []))
         config["last_run"] = today
+        config["last_run_at"] = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
         STATUS_FILE.write_text(json.dumps(config, indent=2))
     else:
         print("[\033[90mSystem\033[0m] 今日已完成自动检索，跳过。")

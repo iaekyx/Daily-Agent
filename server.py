@@ -134,7 +134,7 @@ async def websocket_endpoint(websocket: WebSocket):
     def run_daily_task():
         try:
             today = agent.datetime.date.today().isoformat()
-            config = {"last_run": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
+            config = {"last_run": "", "last_run_at": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
             
             if agent.STATUS_FILE.exists():
                 try:
@@ -142,7 +142,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 except: pass
 
             if config.get("last_run") != today:
-                report_date = (agent.datetime.date.today() - agent.datetime.timedelta(days=1)).isoformat()
+                current_run_at = datetime.now().astimezone().isoformat(timespec="seconds")
+                last_run_at = config.get("last_run_at")
+                if not last_run_at:
+                    last_run_date = config.get("last_run")
+                    if last_run_date:
+                        last_run_at = f"{last_run_date}T00:00:00"
+                    else:
+                        last_run_at = (datetime.now().astimezone() - timedelta(days=1)).isoformat(timespec="seconds")
                 try:
                     meal_analysis_context = build_meal_analysis(3)
                     meal_records_context = [
@@ -165,7 +172,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 query = f"""
 今天是 {today}，请帮我生成一份【每日简报】。
-论文检索窗口固定为昨日：{report_date}。不要检索今天的论文，因为今天发布尚不完整。
+论文检索窗口为增量区间：从上次每日简报执行时间 {last_run_at} 到本次执行时间 {current_run_at}。
+请检索这段时间内发布的新论文；不要固定只查昨日，也不要把区间之外的旧论文写进新论文列表。
 
 以下是后端已经预先整理好的近三天饮食上下文，生成饮食建议时必须优先使用它，不要忽略：
 ```json
@@ -175,7 +183,7 @@ async def websocket_endpoint(websocket: WebSocket):
 你需要完成以下 5 个**完全独立**的子任务：
 1. 检查收藏夹中【已有代码】仓库的最新动态 (check_repo_updates)。
 2. 为收藏夹中【无代码】的论文寻找并绑定官方仓库 (get_missing_repo_candidates)。
-3. 检索关于 '{" 和 ".join(config.get("keywords", []))}' 的昨日论文 (search_arxiv，严查发布日期必须等于 {report_date}，必须精准且严格使用这些指定关键词作为搜索 query，绝对禁止盲目套用 'Large Language Models' 等无关通用占位符！)。
+3. 检索关于 '{" 和 ".join(config.get("keywords", []))}' 的增量新论文：调用 search_arxiv 时必须传入 published_after="{last_run_at}"、published_before="{current_run_at}"、max_results=50、fallback_latest_on_empty=true。必须精准且严格使用这些指定关键词作为搜索 query，绝对禁止盲目套用 'Large Language Models' 等无关通用占位符！
 4. 生成【本周待读提醒】：读取 reading_queue.json，概括本周待读论文数量和最值得优先读的 1-3 篇；如果没有待读，就提示从文献记忆库添加。
 5. 生成【今日饮食建议】：根据上面的近三天饮食上下文，结合今天日期 {today} 给出今天早餐/午餐/晚餐的简短建议。建议要具体、可执行，并尽量弥补近期饮食中的不足；如果上下文没有历史记录，就给出均衡饮食建议。
 
@@ -190,7 +198,7 @@ async def websocket_endpoint(websocket: WebSocket):
 ### 🔄 收藏夹动态
 (列出仓库代码更新，以及今天新找到并绑定的仓库)
 ### 📄 arXiv 新论文
-(只列出发布日期为 {report_date} 的论文标题和链接，没有就写“昨日无新论文”)
+(优先列出发布时间在 {last_run_at} 到 {current_run_at} 之间的新论文标题、发布日期和链接；如果工具返回“区间内没有新论文，以下返回最新的 3 篇论文作为参考”，则明确写“上次简报后暂无新论文，以下是该方向最新 3 篇参考论文”，然后列出这 3 篇。)
 ### 📖 本周待读提醒
 (列出待读数量和建议优先阅读的论文；没有待读就提示从文献记忆库添加)
 ### 🍱 今日饮食建议
@@ -204,6 +212,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 
                 # Mark as run
                 config["last_run"] = today
+                config["last_run_at"] = current_run_at
                 agent.STATUS_FILE.write_text(json.dumps(config, indent=2))
                 
                 # Notify done
@@ -426,11 +435,19 @@ def analyze_meal_content(content: str) -> dict:
 def enriched_meal(meal: dict) -> dict:
     item = dict(meal)
     item["type"] = normalize_meal_type(item.get("type"))
-    analysis = item.get("analysis")
-    if not analysis or "unknown_foods" not in analysis:
-        analysis = analyze_meal_content(item.get("content", ""))
-    item["analysis"] = analysis
+    item["analysis"] = analyze_meal_content(item.get("content", ""))
     return item
+
+def refresh_meal_analyses() -> int:
+    meals = read_json_file(MEALS_FILE, [])
+    refreshed = []
+    for meal in meals:
+        item = dict(meal)
+        item["type"] = normalize_meal_type(item.get("type"))
+        item["analysis"] = analyze_meal_content(item.get("content", ""))
+        refreshed.append(item)
+    write_json_file(MEALS_FILE, refreshed)
+    return len(refreshed)
 
 def find_meal_index(meals: list, meal_date: str, meal_type: str):
     normalized_type = normalize_meal_type(meal_type)
@@ -740,12 +757,14 @@ async def add_food_rule(request: Request):
                     rules["aliases"][alias] = food_name
 
         write_json_file(FOOD_RULES_FILE, rules)
+        refreshed_meals = refresh_meal_analyses()
         return JSONResponse({
             "status": "ok",
             "name": food_name,
             "rule": rule,
             "aliases": [alias for alias, target in rules.get("aliases", {}).items() if target == food_name],
             "total": len(rules.get("foods", {})),
+            "refreshed_meals": refreshed_meals,
         })
     except Exception as e:
         print(f"Error adding food rule: {e}")
@@ -1166,7 +1185,7 @@ def delete_reading_queue_item(paper_id: str):
 @app.get("/api/config")
 def get_config():
     try:
-        config = {"last_run": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
+        config = {"last_run": "", "last_run_at": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
         if agent.STATUS_FILE.exists():
             try:
                 config = json.loads(agent.STATUS_FILE.read_text())
@@ -1175,13 +1194,13 @@ def get_config():
         return JSONResponse(config)
     except Exception as e:
         print(f"Error reading config: {e}")
-        return JSONResponse({"last_run": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]})
+        return JSONResponse({"last_run": "", "last_run_at": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]})
 
 @app.post("/api/config")
 async def update_config(request: Request):
     try:
         payload = await request.json()
-        config = {"last_run": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
+        config = {"last_run": "", "last_run_at": "", "keywords": ["AI-Generated Image Detection", "Agentic Workflow"]}
         if agent.STATUS_FILE.exists():
             try:
                 config = json.loads(agent.STATUS_FILE.read_text())
@@ -1192,6 +1211,8 @@ async def update_config(request: Request):
             config["keywords"] = payload["keywords"]
         if "last_run" in payload:
             config["last_run"] = payload["last_run"]
+        if "last_run_at" in payload:
+            config["last_run_at"] = payload["last_run_at"]
             
         agent.STATUS_FILE.write_text(json.dumps(config, indent=2))
         return JSONResponse({"status": "success", "config": config})

@@ -20,9 +20,14 @@
 
 用于和 Agent 直接对话。Agent 可以根据问题自动决定是否调用工具，例如获取当前日期、查询历史论文、记录饮食、读取本地文件或执行后台任务。
 
+<img width="1197" height="776" alt="截屏2026-06-01 19 25 48" src="https://github.com/user-attachments/assets/9f708786-41da-447e-b5f2-b8eeb13bb2c5" />
+
 ### 学术动态面板
 
 基于 arXiv MCP 工具检索用户关注方向的新论文，并通过收藏夹工具维护论文与 GitHub 仓库的关联。
+
+<img width="1201" height="794" alt="截屏2026-06-01 19 10 37" src="https://github.com/user-attachments/assets/aeb2dc78-4010-4480-be61-ba8ade269d46" />
+
 
 ### 文献记忆库
 
@@ -34,14 +39,21 @@
 4. 尝试提取论文架构图；
 5. 将检索用 document 和 metadata 写入 Chroma 向量数据库；
 6. 在前端提供搜索、评论、方向标签和本周待读操作。
+   
+<img width="1179" height="754" alt="截屏2026-06-01 19 11 59" src="https://github.com/user-attachments/assets/91da3dc2-e9bd-4934-af03-412c654c96c4" />
 
 ### 本周待读
 
 管理本周计划阅读的论文，展示待读列表和本周已读计数。读完后可以添加评论，并同步写回文献记忆库。
 
+<img width="1204" height="733" alt="截屏2026-06-01 19 12 33" src="https://github.com/user-attachments/assets/6673f056-de73-487e-8d76-0caff7f8c0c7" />
+
+
 ### 饮食生活
 
 记录每日饮食内容，不再局限于固定菜单。系统会结合 `data/food_rules.json` 中的本地食物规则，分析近期饮食标签、健康倾向和未识别食物，并支持用大模型为新食物生成标签规则。
+
+<img width="1186" height="791" alt="截屏2026-06-01 19 19 27" src="https://github.com/user-attachments/assets/99db1083-00e6-480b-889e-f68aa37a8058" />
 
 ## Agent 架构
 

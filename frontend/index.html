@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Agent Dashboard</title>
-    <link rel="stylesheet" href="/frontend/css/style.css?v=2.8">
+    <link rel="stylesheet" href="/frontend/css/style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -14,10 +14,23 @@
             <div class="logo">
                 <span class="glitch-text" data-text="研习助手">研习助手</span>
             </div>
-            <ul class="nav-links">
+            <ul class="nav-links primary-nav">
                 <li class="active" data-target="chat-module">
                     <span class="icon">💬</span> 智能体控制台
                 </li>
+            </ul>
+            <section class="conversation-sidebar" aria-label="对话列表">
+                <button id="new-conversation-btn" class="new-conversation-btn">
+                    <span class="new-conversation-icon">＋</span>
+                    <span>新建对话</span>
+                </button>
+                <div class="conversation-sidebar-header">
+                    <span>最近对话</span>
+                </div>
+                <div id="conversation-list" class="conversation-list"></div>
+            </section>
+            <div class="sidebar-section-label">功能模块</div>
+            <ul class="nav-links module-nav">
                 <li data-target="academic-module">
                     <span class="icon">📚</span> 学术动态面板
                 </li>
@@ -205,6 +218,6 @@
 
         </main>
     </div>
-    <script src="/frontend/js/app.js?v=1.27"></script>
+    <script src="/frontend/js/app.js?v=1.28"></script>
 </body>
 </html>

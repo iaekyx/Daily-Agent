@@ -14,7 +14,16 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 import agent # Import the agent module
-from agent_runtime.memory import build_paper_search_document, generate_paper_direction_tags
+from agent_runtime.memory import (
+    conversation_messages_for_agent,
+    create_conversation,
+    delete_conversation,
+    get_conversation,
+    list_conversations,
+    update_conversation_after_turn,
+    build_paper_search_document,
+    generate_paper_direction_tags,
+)
 
 app = FastAPI()
 
@@ -57,7 +66,7 @@ class AgentSession:
         self.permission_answer = False
         self.websocket = None
         self.main_loop = None # Main thread event loop
-        self.messages = [] # chat history
+        self.conversation_id = None
 
 session = AgentSession()
 
@@ -192,6 +201,8 @@ async def websocket_endpoint(websocket: WebSocket):
 你必须立刻调用 `delegate_tasks` 工具，将这 5 个任务包装成独立的 Task，派发给 5 个专属下属 Agent **并行执行**！
 
 当所有下属向你汇报完成后，请你整合他们的结果，用 Markdown 严格按以下固定结构输出【每日简报】：
+在生成最终简报前，如果 arXiv 子任务返回了新论文或 fallback 最新论文，请选择最多 3 篇最值得关注的论文，逐篇调用 analyze_paper_connections，把它们和用户个人文献记忆库中的已有论文做关联分析；如果文献库为空或没有相关论文，请在对应章节说明暂无可对照文献。
+
 ## 每日简报｜{today}
 ### 📅 今日概览
 (用 2-4 条 bullet 简述今天最重要的信息：学术动态、待读、饮食建议。)
@@ -199,6 +210,8 @@ async def websocket_endpoint(websocket: WebSocket):
 (列出仓库代码更新，以及今天新找到并绑定的仓库)
 ### 📄 arXiv 新论文
 (优先列出发布时间在 {last_run_at} 到 {current_run_at} 之间的新论文标题、发布日期和链接；如果工具返回“区间内没有新论文，以下返回最新的 3 篇论文作为参考”，则明确写“上次简报后暂无新论文，以下是该方向最新 3 篇参考论文”，然后列出这 3 篇。)
+### 🧩 与文献记忆库的关联
+(基于 analyze_paper_connections 的结果，说明新论文和个人文献库中已有论文的相似点、差异点、可能组合思路和优先阅读建议。不要编造未检索到的文献。)
 ### 📖 本周待读提醒
 (列出待读数量和建议优先阅读的论文；没有待读就提示从文献记忆库添加)
 ### 🍱 今日饮食建议
@@ -206,9 +219,6 @@ async def websocket_endpoint(websocket: WebSocket):
 """
                 auto_history = [{"role": "user", "content": query}]
                 agent.agent_loop(auto_history)
-                
-                # Append to session messages so chat has context
-                session.messages.extend(auto_history)
                 
                 # Mark as run
                 config["last_run"] = today
@@ -226,14 +236,49 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             payload = json.loads(data)
+
+            if payload.get("type") == "open_conversation":
+                conversation = get_conversation(payload.get("conversation_id"))
+                session.conversation_id = conversation["id"]
+                await websocket.send_text(json.dumps({
+                    "type": "conversation",
+                    "conversation": conversation,
+                    "conversations": list_conversations(),
+                }))
+                continue
             
             if payload.get("type") == "chat":
                 user_msg = payload.get("content")
-                session.messages.append({"role": "user", "content": user_msg})
+                conversation = get_conversation(payload.get("conversation_id") or session.conversation_id)
+                session.conversation_id = conversation["id"]
+                agent_messages = conversation_messages_for_agent(conversation)
+                agent_messages.append({"role": "user", "content": user_msg})
                 # Run agent loop in thread
                 def run_agent():
                     try:
-                        agent.agent_loop(session.messages)
+                        agent.agent_loop(agent_messages)
+                        final_msg = agent_messages[-1].get("content", "") if agent_messages else ""
+                        updated_conversation, compressed = update_conversation_after_turn(
+                            conversation["id"],
+                            user_msg,
+                            agent_messages,
+                        )
+                        session.conversation_id = updated_conversation["id"]
+                        safe_send_text({
+                            "type": "conversation_saved",
+                            "conversation": updated_conversation,
+                            "conversations": list_conversations(),
+                            "compressed": compressed,
+                        })
+                        if compressed:
+                            web_print_callback("🧠 当前对话较长，已压缩早期上下文并保留最近消息")
+                        if final_msg:
+                            try:
+                                saved = agent.remember_conversation_turn(user_msg, final_msg)
+                                if saved:
+                                    web_print_callback(f"🧠 已沉淀 {saved} 条长期用户记忆")
+                            except Exception as memory_error:
+                                print(f"Conversation memory save failed: {memory_error}")
                         # Notify frontend that run is complete
                         safe_send_text({"type": "done"})
                     except Exception as e:
@@ -258,6 +303,28 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close(code=1011, reason=str(e)[:120])
         except Exception:
             pass
+
+@app.get("/api/conversations")
+def api_list_conversations():
+    return JSONResponse(list_conversations())
+
+@app.post("/api/conversations")
+async def api_create_conversation(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    conversation = create_conversation(payload.get("title", ""))
+    return JSONResponse(conversation)
+
+@app.get("/api/conversations/{conversation_id}")
+def api_get_conversation(conversation_id: str):
+    conversation = get_conversation(conversation_id)
+    return JSONResponse(conversation)
+
+@app.delete("/api/conversations/{conversation_id}")
+def api_delete_conversation(conversation_id: str):
+    return JSONResponse(delete_conversation(conversation_id))
 
 @app.get("/api/favorites")
 def get_favorites():

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Navigation
-    const navLinks = document.querySelectorAll('.nav-links li');
+    const navLinks = document.querySelectorAll('.nav-links li[data-target]');
     const modules = document.querySelectorAll('.module');
 
     navLinks.forEach(link => {
@@ -78,11 +78,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatLog = document.getElementById('chat-log');
     const chatInput = document.getElementById('chat-input');
     const sendBtn = document.getElementById('send-btn');
+    const conversationList = document.getElementById('conversation-list');
+    const newConversationBtn = document.getElementById('new-conversation-btn');
     
     let ws = null;
     let reconnectTimer = null;
     let reconnectAttempts = 0;
     let disconnectNotice = null;
+    let currentConversationId = localStorage.getItem('dailyAgentConversationId') || '';
 
     let thinkingBubble = null;
     let streamingMessage = null;
@@ -141,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
             reconnectAttempts = 0;
             clearConnectionNotice();
             setSendEnabled(true);
+            if (currentConversationId) {
+                ws.send(JSON.stringify({type: 'open_conversation', conversation_id: currentConversationId}));
+            }
         };
 
         ws.onmessage = handleWsMessage;
@@ -263,6 +269,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (data.type === 'done') {
             hideThinking();
             finishStreamingMessage();
+        } else if (data.type === 'conversation') {
+            applyConversation(data.conversation, data.conversations, true);
+        } else if (data.type === 'conversation_saved') {
+            applyConversation(data.conversation, data.conversations, false);
+            if (data.compressed) {
+                console.log('Conversation compressed');
+            }
         } else if (data.type === 'error') {
             hideThinking();
             finishStreamingMessage();
@@ -282,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         appendMessage('user', text);
-        ws.send(JSON.stringify({ type: 'chat', content: text }));
+        ws.send(JSON.stringify({ type: 'chat', content: text, conversation_id: currentConversationId }));
         chatInput.value = '';
         
         showThinking(); // Show neon glowing spinner circle immediately!
@@ -297,6 +310,127 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     connectWebSocket();
+
+    async function loadConversations() {
+        try {
+            const res = await fetch('/api/conversations');
+            const conversations = await res.json();
+            renderConversationList(conversations);
+            if (!currentConversationId && conversations.length) {
+                currentConversationId = conversations[0].id;
+                localStorage.setItem('dailyAgentConversationId', currentConversationId);
+            }
+            if (currentConversationId) {
+                await openConversation(currentConversationId);
+            } else {
+                await createNewConversation();
+            }
+        } catch (err) {
+            console.error('Failed to load conversations', err);
+        }
+    }
+
+    function renderConversationList(conversations) {
+        if (!conversationList) return;
+        const items = conversations || [];
+        if (!items.length) {
+            conversationList.innerHTML = '<div class="conversation-empty">暂无历史对话</div>';
+            return;
+        }
+        conversationList.innerHTML = items.map(conv => `
+            <div class="conversation-item ${conv.id === currentConversationId ? 'active' : ''}" data-id="${escapeHtml(conv.id)}">
+                <button class="conversation-open" title="${escapeHtml(conv.title || '新对话')}">
+                    <span class="conversation-title">${escapeHtml(conv.title || '新对话')}</span>
+                </button>
+                <button class="conversation-delete" title="删除对话" aria-label="删除对话">×</button>
+            </div>
+        `).join('');
+        conversationList.querySelectorAll('.conversation-open').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = btn.closest('.conversation-item');
+                openConversation(item ? item.dataset.id : '');
+            });
+        });
+        conversationList.querySelectorAll('.conversation-delete').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const item = btn.closest('.conversation-item');
+                if (item) deleteConversation(item.dataset.id);
+            });
+        });
+    }
+
+    async function openConversation(conversationId) {
+        if (!conversationId) return;
+        const res = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}`);
+        const conversation = await res.json();
+        applyConversation(conversation, null, true);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({type: 'open_conversation', conversation_id: conversation.id}));
+        }
+    }
+
+    async function createNewConversation() {
+        const res = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
+        const conversation = await res.json();
+        applyConversation(conversation, null, true);
+        loadConversations();
+    }
+
+    async function deleteConversation(conversationId) {
+        if (!conversationId) return;
+        if (!confirm('删除这个对话？')) return;
+        const res = await fetch(`/api/conversations/${encodeURIComponent(conversationId)}`, { method: 'DELETE' });
+        const data = await res.json();
+        applyConversation(data.conversation, data.conversations, true);
+        if (ws && ws.readyState === WebSocket.OPEN && data.conversation && data.conversation.id) {
+            ws.send(JSON.stringify({type: 'open_conversation', conversation_id: data.conversation.id}));
+        }
+    }
+
+    function applyConversation(conversation, conversations, rerenderMessages) {
+        if (!conversation || !conversation.id) return;
+        currentConversationId = conversation.id;
+        localStorage.setItem('dailyAgentConversationId', currentConversationId);
+        if (conversations) renderConversationList(conversations);
+        else if (conversationList && ![...conversationList.querySelectorAll('.conversation-item')].some(item => item.dataset.id === currentConversationId)) {
+            loadConversations();
+        }
+        if (conversationList) {
+            conversationList.querySelectorAll('.conversation-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.id === currentConversationId);
+            });
+        }
+        if (rerenderMessages) renderConversationMessages(conversation);
+    }
+
+    function renderConversationMessages(conversation) {
+        chatLog.innerHTML = '';
+        if (conversation.summary) {
+            appendMessage('system', `历史摘要：${conversation.summary}`);
+        }
+        const messages = conversation.messages || [];
+        if (!messages.length && !conversation.summary) {
+            appendMessage('system', 'System Initialized. Awaiting your command.');
+            return;
+        }
+        messages.forEach(msg => {
+            if (msg.role === 'user' || msg.role === 'assistant') {
+                appendMessage(msg.role === 'assistant' ? 'agent' : 'user', msg.content || '');
+            }
+        });
+    }
+
+    if (newConversationBtn) {
+        newConversationBtn.addEventListener('click', () => {
+            createNewConversation();
+        });
+    }
+    loadConversations();
 
     function appendPermissionCard(intent, input) {
         const div = document.createElement('div');

@@ -21,6 +21,8 @@ meals.json
 reading_queue.json
 arxiv_cache.json
 search_results.xml
+data/user_profile.json
+data/conversations.json
 vector_db/
 
 # Uploaded/read papers and generated assets
@@ -30,4 +32,3 @@ vector_db/
 .DS_Store
 .idea/
 .vscode/
-

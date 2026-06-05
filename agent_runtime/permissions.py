@@ -6,7 +6,7 @@ from .settings import PERMISSION_MODES
 class CapabilityPermissionGate:
     """Classify and gate native/MCP tool calls."""
 
-    READ_PREFIXES = ("read", "list", "get", "show", "search", "query", "inspect")
+    READ_PREFIXES = ("read", "list", "get", "show", "search", "query", "inspect", "analyze")
     HIGH_RISK_PREFIXES = ("delete", "remove", "drop", "shutdown")
 
     def __init__(self, mode: str = "default"):

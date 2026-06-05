@@ -20,7 +20,18 @@ from agent_runtime.mcp import MCPClient, mcp_router, plugin_loader
 from agent_runtime.permissions import permission_gate
 from agent_runtime.tasks import get_pipeline_runs, register_pipeline, update_pipeline
 
-from agent_runtime.memory import paper_collection, run_ingest_paper, run_search_memory
+from agent_runtime.memory import (
+    analyze_paper_connections,
+    analyze_research_idea_with_memory,
+    build_relevant_user_memory_context,
+    build_user_profile_context,
+    paper_collection,
+    remember_conversation_turn,
+    run_ingest_paper,
+    run_search_memory,
+    run_search_user_memory,
+    store_user_memory,
+)
 
 # -- Native tool implementations --
 def run_bash(command: str) -> str:
@@ -240,6 +251,22 @@ NATIVE_HANDLERS = {
     # 🚨 新增：记忆工具入口
     "ingest_paper":     lambda **kw: run_ingest_paper(kw.get("pdf_path", ""), kw.get("custom_title")),
     "search_memory":    lambda **kw: run_search_memory(kw.get("query", "")),
+    "analyze_paper_connections": lambda **kw: analyze_paper_connections(
+        kw.get("title", ""),
+        kw.get("abstract", ""),
+        kw.get("n_results", 5),
+    ),
+    "analyze_research_idea": lambda **kw: analyze_research_idea_with_memory(
+        kw.get("idea", ""),
+        kw.get("n_results", 6),
+    ),
+    "remember_user_memory": lambda **kw: store_user_memory(
+        kw.get("content", ""),
+        kw.get("memory_type", "note"),
+        kw.get("topic", ""),
+        "agent_tool",
+    ),
+    "search_user_memory": lambda **kw: run_search_user_memory(kw.get("query", "")),
 }
 
 NATIVE_TOOLS = [
@@ -347,6 +374,55 @@ NATIVE_TOOLS = [
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "检索词或问题，例如 '跨模态特征融合的网络架构' 或 '关于 AIGC 图像检测的最新方法'"}
+            },
+            "required": ["query"]
+        }
+    }},
+    {"type": "function", "function": {
+        "name": "analyze_paper_connections",
+        "description": "【文献关联分析】当需要分析一篇新论文和个人文献库中已有论文的相似点、差异点、组合思路或阅读优先级时调用。每日简报中的新论文也可用它做个人文献库关联。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "新论文标题"},
+                "abstract": {"type": "string", "description": "新论文摘要、简介或已有核心创新描述"},
+                "n_results": {"type": "integer", "description": "从个人文献库召回的候选论文数量，默认 5"}
+            },
+            "required": ["title"]
+        }
+    }},
+    {"type": "function", "function": {
+        "name": "analyze_research_idea",
+        "description": "【研究想法分析】当用户提出研究想法、方法设想、实验方向或想判断创新性时调用。它会检索个人文献库，并给出 related work、创新空间、重合风险和可行路线。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "idea": {"type": "string", "description": "用户提出的研究想法或方法设想"},
+                "n_results": {"type": "integer", "description": "从个人文献库召回的候选论文数量，默认 6"}
+            },
+            "required": ["idea"]
+        }
+    }},
+    {"type": "function", "function": {
+        "name": "remember_user_memory",
+        "description": "【用户长期记忆】当用户明确要求你记住某个长期偏好、项目决策、个人目标或以后要遵守的规则时调用。不要保存 API key、密码、token 等敏感信息。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "content": {"type": "string", "description": "要长期记住的一条简洁中文记忆"},
+                "memory_type": {"type": "string", "enum": ["preference", "project_decision", "user_profile", "todo", "fact", "note"]},
+                "topic": {"type": "string", "description": "简短主题，例如 每日简报、饮食、文献检索、界面偏好"}
+            },
+            "required": ["content"]
+        }
+    }},
+    {"type": "function", "function": {
+        "name": "search_user_memory",
+        "description": "【用户长期记忆】当用户询问你是否记得他的偏好、项目决策、历史要求或个人目标时调用。它检索的是对话中沉淀的用户长期记忆，不是论文库。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "要查询的用户记忆问题或关键词"}
             },
             "required": ["query"]
         }
@@ -480,6 +556,91 @@ def build_agent_message(messages: list, tools: list) -> dict:
             _stream_text_to_web(message.get("content", ""))
         return message
 
+def build_workflow_guidance(active_keywords: list) -> str:
+    keywords_text = ", ".join(active_keywords or [])
+    return (
+        "\n【工作流原则：Memory-Augmented Tool-Calling ReAct】\n"
+        "1. 简单问答直接回答；涉及事实查询、日期、论文、文献库、饮食记录、文件或外部状态时，优先调用工具获取真实上下文。\n"
+        "2. 对需要 2 个以上步骤或 2 个以上工具的任务，先在内部形成 2-5 步轻量计划，再按“调用工具 -> 观察结果 -> 继续判断”的闭环执行；不要为了普通问题输出冗长计划。\n"
+        "3. 每次工具返回后，先判断结果是否足以回答；如果缺少关键证据，继续调用合适工具，不要用模型记忆补齐不确定事实。\n"
+        "4. 最终回答前做一次轻量自检：是否满足用户的最新请求、是否使用了必要工具、是否存在失败工具调用、是否需要说明不确定性。\n"
+        "5. 日期敏感任务必须确认已经使用 get_current_datetime；每日简报、今日最新、本周、昨天、最近等任务不能直接相信模型内置日期。\n"
+        f"6. 学术检索默认关键词为：{keywords_text or '未配置'}。每日简报类任务需要确认检索区间和 fallback 逻辑，不要漏掉区间内新论文。\n"
+        "7. 饮食分析和建议要优先参考最近饮食记录；若存在未识别食物或数据不足，要明确说明依据有限。\n"
+        "8. 文献库/RAG 回答要优先依据检索到的文献、摘要、评论和方向标签；没有检索依据时不要编造已入库内容。\n"
+        "9. 当用户提出研究想法、方法设想或询问创新性时，优先调用 analyze_research_idea，用个人文献库做 related work、重合风险和可行路线分析。\n"
+        "10. 当每日简报、新论文解读或用户提供一篇新论文时，优先调用 analyze_paper_connections，把新论文和个人文献库已有论文做相似点、差异点和思想碰撞分析。\n"
+        "11. arXiv/MCP 检索失败时，不要要求用户自己去网页筛选；应先根据工具返回的降级结果继续整理，或明确说明后端检索暂时失败并建议稍后自动重试。\n"
+        "12. 只有任务确实复杂且可并行时才使用 delegate_tasks；普通单目标任务由主 Agent 自己完成。\n"
+    )
+
+def classify_context_task(user_message: str) -> str:
+    text = str(user_message or "").lower()
+    if re.search(r"(记得|记住|忘记|之前|上次|历史|长期记忆|用户画像|偏好|我说过|我问过)", text):
+        return "memory"
+    if re.search(r"(饮食|吃|早餐|午餐|晚餐|宵夜|营养|健康|食物|热量|蛋白质|kfc|汉堡|可乐|鸡块)", text):
+        return "meal"
+    if re.search(r"(论文|文献|arxiv|pdf|rag|检索|摘要|方向标签|待读|入库|github|仓库|每日简报|今日早报|早报)", text):
+        return "paper"
+    if re.search(r"(agent|workflow|context|memory|mcp|前端|后端|系统|项目|模块|代码|架构|设计模式|功能)", text):
+        return "project"
+    if re.search(r"(今天|明天|昨天|星期|周几|日期|几号|几点|当前时间|现在时间)", text):
+        return "date"
+    return "general"
+
+def build_context_policy(user_message: str) -> dict:
+    task_type = classify_context_task(user_message)
+    policy = {
+        "task_type": task_type,
+        "include_profile": False,
+        "include_vector_memory": False,
+        "memory_results": 3,
+    }
+    if task_type in ("memory", "project"):
+        policy.update({"include_profile": True, "include_vector_memory": True, "memory_results": 5})
+    elif task_type in ("paper", "meal"):
+        policy.update({"include_profile": True, "include_vector_memory": True, "memory_results": 3})
+    elif task_type == "general":
+        policy.update({"include_profile": False, "include_vector_memory": False, "memory_results": 0})
+    return policy
+
+def build_memory_retrieval_query(messages: list, user_message: str) -> str:
+    recent = [
+        str(m.get("content", "")).strip()
+        for m in messages
+        if m.get("role") in ("user", "assistant") and str(m.get("content", "")).strip()
+    ][-6:]
+    current = str(user_message or "").strip()
+    reference_like = bool(re.search(r"(这个|那个|刚刚|上面|之前|继续|它|这块|这里|这种)", current))
+    if reference_like and recent:
+        return "\n".join([*recent, current])[-1800:]
+    if len(current) < 12 and recent:
+        return "\n".join([*recent[-3:], current])[-1200:]
+    return current[:1200]
+
+def load_agent_skill(skill_name: str) -> str:
+    skill_path = WORKDIR / "agent_runtime" / "skills" / f"{skill_name}.md"
+    try:
+        if skill_path.exists():
+            return skill_path.read_text(encoding="utf-8")[:6000]
+    except Exception as e:
+        print(f"[\033[33mSkill\033[0m] 加载 {skill_name} 失败: {e}")
+    return ""
+
+def build_skill_context(context_policy: dict) -> str:
+    task_type = context_policy.get("task_type")
+    if task_type not in {"paper", "project", "memory"}:
+        return ""
+
+    skill_text = load_agent_skill("literature_connection")
+    if not skill_text:
+        return ""
+    return (
+        "\n【Active Skill: literature-connection】\n"
+        "当本轮任务涉及论文、研究想法、创新性判断、related work 或每日简报论文分析时，请遵循以下 skill 规范：\n"
+        f"{skill_text}\n"
+    )
+
 def agent_loop(messages: list):
     tools = build_tool_pool()
 
@@ -491,6 +652,29 @@ def agent_loop(messages: list):
                 config = json.loads(STATUS_FILE.read_text())
             except: pass
         active_keywords = config.get("keywords", [])
+        latest_user_message = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+        context_policy = build_context_policy(latest_user_message)
+        profile_context = build_user_profile_context() if context_policy["include_profile"] else ""
+        memory_query = build_memory_retrieval_query(messages, latest_user_message)
+        memory_context = (
+            build_relevant_user_memory_context(memory_query, context_policy["memory_results"])
+            if context_policy["include_vector_memory"] else ""
+        )
+        context_policy_prompt = (
+            f"\n【Context Policy】当前任务类型：{context_policy['task_type']}。"
+            "系统已按任务需要选择是否注入用户画像和长期记忆；未注入的记忆不要自行假设。\n"
+        )
+        skill_context = build_skill_context(context_policy)
+        profile_prompt = (
+            f"\n【用户画像 Summary Memory】\n{profile_context}\n"
+            "这些是用户的稳定长期画像、偏好和策略，优先用于理解用户目标和默认偏好；如果和用户当前明确说法冲突，以当前说法为准。\n"
+            if profile_context else ""
+        )
+        memory_prompt = (
+            f"\n【相关用户长期记忆】\n{memory_context}\n"
+            "使用这些记忆时要自然融入回答；如果记忆和用户当前明确说法冲突，以当前说法为准。\n"
+            if memory_context else ""
+        )
         
         system_prompt = (
             f"You are a highly capable Manager Agent at {WORKDIR}.\n"
@@ -500,8 +684,15 @@ def agent_loop(messages: list):
             f"【重点关注领域】：用户当前高度关注的学术关键词是：{', '.join(active_keywords)}。在用户未明确指定检索词时，你必须严格使用这些关键词作为默认搜索词调用 arXiv 检索，绝对不允许使用 'Large Language Models' 或其他无关的默认词。\n"
             "【代码仓库绑定原则】：在为论文寻找并绑定 GitHub 官方仓库时，必须执行严谨的双重校验：（1）仓库 README/描述中是否明确提及该论文标题或作者；（2）仓库所有者/贡献者是否属于论文作者。严禁仅凭项目名称相同就盲目绑定（例如重名的毕业设计、无关的开源工具或商业项目）。\n"
             "【重要原则】：对于简单任务，你自己调用工具解决。对于复杂且可并行的任务（如对比两个不同的领域，或者需要同时调用多个极其耗时的工具），你【必须】调用 `delegate_tasks` 工具派发给下属执行，最后你来做汇总总结。"
+            f"{build_workflow_guidance(active_keywords)}"
+            f"{context_policy_prompt}"
+            f"{skill_context}"
+            f"{profile_prompt}"
+            f"{memory_prompt}"
         )
         if not messages or messages[0].get("role") != "system":
+             messages.insert(0, {"role": "system", "content": system_prompt})
+        elif str(messages[0].get("content", "")).startswith("【当前对话历史摘要】"):
              messages.insert(0, {"role": "system", "content": system_prompt})
         else:
              messages[0]["content"] = system_prompt
@@ -597,10 +788,14 @@ def get_daily_update(router, keywords):
         你必须立刻调用 `delegate_tasks` 工具，将这 3 个任务包装成独立的 Task，派发给 3 个专属下属 Agent **并行执行**！
 
         当所有下属向你汇报完成后，请你整合他们的结果，用 Markdown 输出漂亮的早报：
+        在生成最终早报前，如果 arXiv 子任务返回了新论文或 fallback 最新论文，请选择最多 3 篇最值得关注的论文，逐篇调用 analyze_paper_connections，把它们和用户个人文献记忆库中的已有论文做关联分析；如果文献库为空或没有相关论文，请说明暂无可对照文献。
+
         ### 🔄 收藏夹动态
         (列出仓库代码更新，以及今天新找到并绑定的仓库)
         ### 📄 arXiv 新论文
         (优先列出发布时间在 {last_run_at} 到 {current_run_at} 之间的新论文标题、发布日期和链接；如果工具返回“区间内没有新论文，以下返回最新的 3 篇论文作为参考”，则明确写“上次简报后暂无新论文，以下是该方向最新 3 篇参考论文”，然后列出这 3 篇。)
+        ### 🧩 与文献记忆库的关联
+        (基于 analyze_paper_connections 的结果，说明新论文和个人文献库中已有论文的相似点、差异点、可能组合思路和优先阅读建议。不要编造未检索到的文献。)
         """
     
     auto_history = [{"role": "user", "content": query}]

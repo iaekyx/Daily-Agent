@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # arxiv_mcp_server.py - 独立的 arXiv 检索 MCP 服务器 (彻底修复缓冲与编码超时版)
+from __future__ import annotations
+
 import time
 import sys
 import json
@@ -9,7 +11,10 @@ import urllib.error
 import xml.etree.ElementTree as ET
 import ssl
 import re
+import html
 from datetime import datetime
+
+API_BACKOFF_UNTIL = 0
 
 def send_response(msg_id, result=None, error=None):
     """向标准输出打印 JSON-RPC 响应，供 Agent 接收"""
@@ -43,8 +48,152 @@ def build_search_query(query: str) -> str:
         return " AND ".join(f"all:{term}" for term in terms)
     return f'all:"{clean_query}"'
 
+def strip_html(value: str) -> str:
+    value = re.sub(r"<script[\s\S]*?</script>", " ", value, flags=re.I)
+    value = re.sub(r"<style[\s\S]*?</style>", " ", value, flags=re.I)
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = html.unescape(value)
+    return re.sub(r"\s+", " ", value).strip()
+
+def parse_submitted_date(value: str):
+    value = strip_html(value)
+    match = re.search(r"Submitted\s+(\d{1,2}\s+[A-Za-z]+,\s+\d{4})", value)
+    if not match:
+        return None, ""
+    raw = match.group(1)
+    try:
+        dt = datetime.strptime(raw, "%d %B, %Y").astimezone()
+        return dt, dt.date().isoformat()
+    except Exception:
+        return None, raw
+
+def format_paper(title: str, published_date: str, published_raw: str, authors: list, link: str, summary: str) -> str:
+    return (
+        f"标题: {title}\n"
+        f"发布日期: {published_date}\n"
+        f"发布时间: {published_raw or published_date}\n"
+        f"作者: {', '.join(authors)}\n"
+        f"链接: {link}\n"
+        f"摘要: {summary}\n"
+    )
+
+def filter_and_format_papers(candidates: list[dict], result_limit: int, published_after: str = None, published_before: str = None, fallback_latest_on_empty: bool = False) -> str:
+    after_dt = parse_datetime_bound(published_after)
+    before_dt = parse_datetime_bound(published_before)
+    papers = []
+    fallback_papers = []
+
+    for item in candidates:
+        paper_text = format_paper(
+            item.get("title", ""),
+            item.get("published_date", ""),
+            item.get("published_raw", ""),
+            item.get("authors", []),
+            item.get("link", ""),
+            item.get("summary", ""),
+        )
+        if len(fallback_papers) < 3:
+            fallback_papers.append(paper_text)
+
+        published_dt = item.get("published_dt")
+        if after_dt and published_dt and published_dt <= after_dt:
+            continue
+        if before_dt and published_dt and published_dt > before_dt:
+            continue
+        papers.append(paper_text)
+        if len(papers) >= result_limit:
+            break
+
+    if not papers:
+        if fallback_latest_on_empty and fallback_papers:
+            return (
+                f"发布时间在 {published_after or '-∞'} 到 {published_before or '+∞'} 之间没有检索到新论文。\n"
+                "以下返回该关键词下最新的 3 篇论文作为参考：\n\n"
+                + "\n---\n".join(fallback_papers)
+            )
+        if published_after or published_before:
+            return f"未找到发布时间在 {published_after or '-∞'} 到 {published_before or '+∞'} 之间的相关论文。"
+        return "未找到相关论文。"
+    return "\n---\n".join(papers)
+
+def parse_api_entries(xml_data: bytes) -> list[dict]:
+    root = ET.fromstring(xml_data)
+    ns = {'atom': 'http://www.w3.org/2005/Atom'}
+    candidates = []
+    for entry in root.findall('atom:entry', ns):
+        title = entry.find('atom:title', ns).text.replace('\n', ' ').strip()
+        summary = entry.find('atom:summary', ns).text.replace('\n', ' ').strip()
+        link = entry.find('atom:id', ns).text
+        authors = [a.find('atom:name', ns).text for a in entry.findall('atom:author', ns)]
+        published_raw = entry.find('atom:published', ns).text
+        candidates.append({
+            "title": title,
+            "summary": summary,
+            "link": link,
+            "authors": authors,
+            "published_raw": published_raw,
+            "published_date": published_raw[:10],
+            "published_dt": parse_datetime_bound(published_raw),
+        })
+    return candidates
+
+def search_arxiv_html_fallback(query: str, max_results: int, published_after: str = None, published_before: str = None, fallback_latest_on_empty: bool = False) -> str:
+    """Fallback parser for arxiv.org/search when export API is rate-limited or slow."""
+    size = 50 if (published_after or published_before or max_results > 25) else 25
+    params = urllib.parse.urlencode({
+        "query": query,
+        "searchtype": "all",
+        "abstracts": "show",
+        "order": "-announced_date_first",
+        "size": str(size),
+    })
+    url = f"https://arxiv.org/search/?{params}"
+    req = urllib.request.Request(url, headers={
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    })
+    ssl_context = ssl._create_unverified_context()
+    with urllib.request.urlopen(req, timeout=35, context=ssl_context) as response:
+        page = response.read().decode("utf-8", errors="ignore")
+
+    candidates = []
+    for block in re.findall(r'<li class="arxiv-result">([\s\S]*?)</li>\s*(?=<li class="arxiv-result">|</ol>)', page):
+        link_match = re.search(r'<p class="list-title[\s\S]*?<a href="([^"]+)">arXiv:[^<]+</a>', block)
+        title_match = re.search(r'<p class="title is-5 mathjax">([\s\S]*?)</p>', block)
+        authors_match = re.search(r'<p class="authors">([\s\S]*?)</p>', block)
+        abstract_match = re.search(
+            r'<span class="abstract-full[\s\S]*?style="display:\s*none;">([\s\S]*?)<a class="is-size-7"',
+            block,
+        )
+        if not abstract_match:
+            abstract_match = re.search(r'<p class="abstract mathjax">([\s\S]*?)</p>', block)
+        submitted_match = re.search(r'<p class="is-size-7">([\s\S]*?Submitted[\s\S]*?)</p>', block)
+
+        title = strip_html(title_match.group(1)) if title_match else ""
+        link = link_match.group(1) if link_match else ""
+        authors = re.findall(r'<a href="/search/\?searchtype=author[^"]*">([\s\S]*?)</a>', authors_match.group(1) if authors_match else "")
+        authors = [strip_html(author) for author in authors]
+        summary = strip_html(abstract_match.group(1)).replace("Abstract :", "").replace("Abstract:", "").strip() if abstract_match else ""
+        published_dt, published_date = parse_submitted_date(submitted_match.group(1) if submitted_match else "")
+        if title:
+            candidates.append({
+                "title": title,
+                "summary": summary,
+                "link": link,
+                "authors": authors,
+                "published_raw": published_date,
+                "published_date": published_date,
+                "published_dt": published_dt,
+            })
+
+    if not candidates:
+        return "【检索失败】arXiv API 不可用，网页降级检索也没有解析到结果。"
+
+    result = filter_and_format_papers(candidates, max_results, published_after, published_before, fallback_latest_on_empty)
+    return "【提示】arXiv API 当前不可用，以下结果来自 arXiv 搜索网页降级检索。\n\n" + result
+
 def search_arxiv(query: str, max_results: int = None, published_after: str = None, published_before: str = None, fallback_latest_on_empty: bool = False) -> str:
     """调用 arXiv 官方 API 并解析 XML 结果 (修复二次编码与重定向问题)"""
+    global API_BACKOFF_UNTIL
     # 1. 清理两端空格
     clean_query = query.strip()
     after_dt = parse_datetime_bound(published_after)
@@ -59,6 +208,12 @@ def search_arxiv(query: str, max_results: int = None, published_after: str = Non
     
     # 3. 明确使用 https 协议，防止 301 重定向在代理环境中卡死
     url = f"https://export.arxiv.org/api/query?search_query={encoded_query}&max_results={fetch_limit}&sortBy=submittedDate&sortOrder=descending"
+
+    if time.time() < API_BACKOFF_UNTIL:
+        try:
+            return search_arxiv_html_fallback(clean_query, result_limit, published_after, published_before, fallback_latest_on_empty)
+        except Exception as fallback_error:
+            return f"请求 arXiv API 处于临时退避期；网页降级检索失败: {fallback_error}"
     
     try:
         req = urllib.request.Request(url, headers={
@@ -67,60 +222,35 @@ def search_arxiv(query: str, max_results: int = None, published_after: str = Non
         
         ssl_context = ssl._create_unverified_context()
         
-        # 将 timeout 延长至 15 秒，给慢速网络留出足够的读取时间，防止频繁发生 read operation timed out
-        with urllib.request.urlopen(req, timeout=15, context=ssl_context) as response:
+        # API 近期经常限流/卡住。保持较短超时，失败后自动走网页搜索降级。
+        with urllib.request.urlopen(req, timeout=10, context=ssl_context) as response:
             xml_data = response.read()
         
-        root = ET.fromstring(xml_data)
-        ns = {'atom': 'http://www.w3.org/2005/Atom'}
-        
-        papers = []
-        fallback_papers = []
-        for entry in root.findall('atom:entry', ns):
-            title = entry.find('atom:title', ns).text.replace('\n', ' ').strip()
-            summary = entry.find('atom:summary', ns).text.replace('\n', ' ').strip()
-            link = entry.find('atom:id', ns).text
-            authors = [a.find('atom:name', ns).text for a in entry.findall('atom:author', ns)]
-            
-            published_raw = entry.find('atom:published', ns).text
-            published_dt = parse_datetime_bound(published_raw)
-            published_date = published_raw[:10]
-            paper_text = f"标题: {title}\n发布日期: {published_date}\n发布时间: {published_raw}\n作者: {', '.join(authors)}\n链接: {link}\n摘要: {summary}\n"
-
-            if len(fallback_papers) < 3:
-                fallback_papers.append(paper_text)
-
-            if after_dt and published_dt and published_dt <= after_dt:
-                continue
-            if before_dt and published_dt and published_dt > before_dt:
-                continue
-
-            papers.append(paper_text)
-            if len(papers) >= result_limit:
-                break
-            
-        if not papers:
-            if fallback_latest_on_empty and fallback_papers:
-                return (
-                    f"发布时间在 {published_after or '-∞'} 到 {published_before or '+∞'} 之间没有检索到新论文。\n"
-                    "以下返回该关键词下最新的 3 篇论文作为参考：\n\n"
-                    + "\n---\n".join(fallback_papers)
-                )
-            if published_after or published_before:
-                return f"未找到发布时间在 {published_after or '-∞'} 到 {published_before or '+∞'} 之间的相关论文。"
-            return "未找到相关论文。"
-        return "\n---\n".join(papers)
+        candidates = parse_api_entries(xml_data)
+        return filter_and_format_papers(candidates, result_limit, published_after, published_before, fallback_latest_on_empty)
         
     except urllib.error.HTTPError as e:
         if e.code == 429:
             print(f"[\033[33marXiv 警告\033[0m] 请求过快被限流 (Error 429)！", file=sys.stderr)
-            return "【检索失败】由于近期检索过于频繁，触发了 arXiv 官方的 429 限流保护。请检查您的代理分流规则，或等待 3-5 分钟后再试。"
+            API_BACKOFF_UNTIL = time.time() + 300
+            try:
+                return search_arxiv_html_fallback(clean_query, result_limit, published_after, published_before, fallback_latest_on_empty)
+            except Exception as fallback_error:
+                return f"【检索失败】arXiv API 触发 429 限流，网页降级检索也失败: {fallback_error}。请等待 3-5 分钟后再试，或检查代理分流规则。"
         else:
             print(f"[\033[31marXiv 报错\033[0m] HTTP Error {e.code}", file=sys.stderr)
-            return f"请求 arXiv 时发生 HTTP 错误: {e.code}"
+            try:
+                return search_arxiv_html_fallback(clean_query, result_limit, published_after, published_before, fallback_latest_on_empty)
+            except Exception:
+                return f"请求 arXiv 时发生 HTTP 错误: {e.code}"
     except Exception as e:
         print(f"[\033[31marXiv 错误\033[0m] {str(e)}", file=sys.stderr)
-        return f"请求 arXiv 时发生未知错误或超时: {str(e)}"
+        if "timed out" in str(e).lower() or "urlopen error" in str(e).lower():
+            API_BACKOFF_UNTIL = time.time() + 300
+        try:
+            return search_arxiv_html_fallback(clean_query, result_limit, published_after, published_before, fallback_latest_on_empty)
+        except Exception as fallback_error:
+            return f"请求 arXiv API 失败: {str(e)}；网页降级检索也失败: {fallback_error}"
 
 def main():
     # 🌟 核心修复：严禁使用 for line in sys.stdin，改用 readline() 规避管道块缓冲卡死

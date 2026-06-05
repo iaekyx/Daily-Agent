@@ -2,8 +2,6 @@
 
 一个面向个人科研学习场景的本地智能体系统。项目以大模型为任务规划与推理核心，采用 **Memory-Augmented Tool-Calling ReAct** 工作流，通过工具调用连接本地文件系统、ChromaDB 向量数据库、MCP 外部工具和前端交互页面，提供论文发现、阅读管理、文献记忆、研究想法分析、多会话长期记忆与每日科研简报能力。
 
-> 原项目名为 Daily Agent，目前系统定位更偏向个人科研学习与文献工作流，因此也可称为 **ScholarFlow Agent**。
-
 ## 项目亮点
 
 - **本地 Agent Harness**：基于 LLM Tool Calling 实现本地 Manager Agent，支持多轮工具调用、权限控制、流式输出、MCP 工具接入和任务分发。
